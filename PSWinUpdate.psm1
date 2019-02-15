@@ -219,27 +219,24 @@ function Get-WindowsUpdate {
 
 		[Parameter()]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('True', 'False')]
-		[string]$Installed = 'False',
+		[bool]$Installed = $false,
 
 		[Parameter()]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('True', 'False')]
-		[string]$Hidden,
+		[bool]$Hidden,
 
 		[Parameter()]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('True', 'False')]
-		[string]$Assigned,
+		[bool]$Assigned,
 
 		[Parameter()]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('True', 'False')]
-		[string]$RebootRequired
+		[bool]$RebootRequired
 	)
 	begin {
 		$ErrorActionPreference = 'Stop'
 		if (-not $Session) {
+			Write-Verbose -Message 'Building new session...'
 			$sessParams = Get-RemotingParameter -ComputerName $ComputerName -Credential $Credential
 			$Session = New-PSSession @sessParams
 		}
@@ -248,13 +245,9 @@ function Get-WindowsUpdate {
 		try {
 			$criteriaParams = @{}
 
-			## Had to set these to string values because if they're boolean they will have a $false value even if
-			## they aren't set.  I needed to check for a $null value.ided
-			@('Installed', 'Hidden', 'Assigned', 'RebootRequired').where({ (Get-Variable -Name $_).Value }).foreach({
-					$criteriaParams[$_] = if ((Get-Variable -Name $_).Value -eq 'True') {
-						$true 
-					} else {
-						$false 
+			@('Installed', 'Hidden', 'Assigned', 'RebootRequired').foreach({
+					if ($PSBoundParameters.ContainsKey($_)) {
+						$criteriaParams[$_] = (Get-Variable -Name $_).Value
 					}
 				})
 			$query = NewUpdateCriteriaQuery @criteriaParams
